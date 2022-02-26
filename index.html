@@ -1,0 +1,72 @@
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<link rel="stylesheet" type="text/css" href="css/chessboard-1.0.0.css">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+<script src="js/chess.js"></script>
+<script src="js/chessboard-1.0.0.js"></script> 
+<script src="js/ai-logic.js"></script>
+<script src="js/ai-alphabeta.js"></script>
+
+<style type="text/css">
+input[type='checkbox'] {
+    -webkit-appearance:none;
+    width:30px;
+    height:30px;
+    background:white;
+    border-radius:5px;
+    border:2px solid #555;
+}
+
+input[type='checkbox']:checked {
+    background: #fbd;
+}
+</style>
+    
+    <body>
+<h3 class="board">
+Alpha beta
+</h3>
+<div id="myBoard" class="board" style="width:375px"></div>
+<br>
+<button onclick="ai.undo(); board.position(game.fen()),ai.undo(); board.position(game.fen())">UNDO</button>
+
+<button onclick=" window.setTimeout(makeRandomMove, 250); ">(cpu make 1 move)</button>
+<button onclick=" autoPlay(); ">(cpu vs cpu)</button>
+<input type="checkbox" id="no_computer" size="40px">
+<div class="info">
+    Ply depth:
+    <select id="search-depth">
+        <option value="1" >1</option>
+        <option value="2" selected >2</option>
+        <option value="3">3</option>
+        <option value="4">4</option>
+        <option value="5">5</option>
+    </select>
+
+    <br>
+    <span>Positions evaluated: <span id="position-count"></span></span>
+    <br>
+	<span>Capture positions evaluated: <span id="position-count2"></span></span>
+    <br>
+	<span>Total evaluated: <span id="position-count3"></span></span>
+    <br>
+    <span>Time: <span id="time"></span></span>
+    <br>
+    <span>Positions/s: <span id="positions-per-s"></span> </span>
+    <br>
+    <br>
+    <div id="move-history" class="move-history">
+    </div>
+</div>
+</body>
+<script>var width = (window.innerWidth > 0) ? window.innerWidth : screen.width;
+var height = (window.innerHeight > 0) ? window.innerHeight*0.5 : screen.height;
+document.getElementById("myBoard").style.width = Math.min(width,height);
+
+// Disable scrolling.
+document.getElementById("myBoard").ontouchmove = function (e) {
+  e.preventDefault();
+}
+</script>
+<script src="js/index.js"></script>
+

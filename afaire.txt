@@ -1,0 +1,15 @@
+even better move ordering (killer history or whatever)
+zobrist case take into account castles etc
+
+
+done:
+iterative deepening
+better move ordering (MVV and something for negamax)
+WHERE THE F ARE MY BETA CUTS??
+
+
+memo:
+
+javascript:
+
+Arrays in JavaScript, unlike some other programming languages, shouldn’t be compared with operator ==.
