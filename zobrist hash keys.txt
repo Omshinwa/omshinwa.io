@@ -1,16 +1,11 @@
-key's for non random hash keys
+{color: 'w', from: 96, to: 80, flags: 1, piece: 'p'}
+color: "w"
+flags: 1
+from: 96
+piece: "p"
+to: 80
 
-default: 928016052
+-518339535
 
-1264035912 h3
-1073692540 h3 Nc6
-936988749  h3 Na6
-1073954658 h3 Nc6 h4 
-
-1271792133 e4
-928082929  e4 Nf6
-1170610983 e4 Nf6 Nf3 
-650415609  e4 Nf6 Nf3 Nxe4
-909764236  e4 Nc6 e5 (Ne5?)
-
-1205889541 
+stalemate issue:
+game.load("1R6/4k3/4N3/2N1B3/4B3/P6P/P1PPPP1P/3Q1RK1 w - - 22 36")

@@ -48,18 +48,9 @@ function onDragStart(source, piece) {
 
 /* untested, seems to save history so you can continue using .undo() */
 let getOpponentMoves = (game) => {
-  let gamePGN = game.pgn();
-
-  let tokens = game.fen().split(" ");
-  tokens[1] = tokens[1] === "w" ? "b" : "w";
-  game.load(tokens.join(" "));
-
-  let moves = game.moves();
-
-  tokens = game.fen().split(" ");
-  tokens[1] = tokens[1] === "w" ? "b" : "w";
-  game.load_pgn(gamePGN);
-
+  game.fast_move("--")
+  let moves = game.moves({legal:false, nullmove:true});
+  game.fast_move("--")
   return moves;
 };
 

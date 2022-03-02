@@ -1,8 +1,9 @@
 even better move ordering (killer history or whatever)
 zobrist case take into account castles etc
+use chess.js native obj move to move stuff
 
 
-done:
+--------------------------------------------------------
 iterative deepening
 better move ordering (MVV and something for negamax)
 WHERE THE F ARE MY BETA CUTS??

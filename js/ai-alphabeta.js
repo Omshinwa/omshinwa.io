@@ -84,14 +84,25 @@ var kEvalWhite_middle = [
 var kEvalBlack_middle = reverseArray(kEvalWhite_middle);
 
 var kEvalWhite_end = [
-  [-50, -40, -30, -20, -20, -30, -40, -50],
-  [-30, -20, -10, 0, 0, -10, -20, -30],
-  [-30, -10, 20, 30, 30, 20, -10, -30],
-  [-30, -10, 30, 40, 40, 30, -10, -30],
-  [-30, -10, 30, 40, 40, 30, -10, -30],
-  [-30, -10, 20, 30, 30, 20, -10, -30],
-  [-30, -30, 0, 0, 0, 0, -30, -30],
-  [-50, -30, -30, -30, -30, -30, -30, -50],
+  [-30, -20, -10, 30, 30, -10, -20, -30],
+  [-20, -10, 30, 10, 10, 30, -10, -20],
+  [-10, 30, 10, 20, 20, 10, 30, -10],
+  [30, 10, 20, 30, 30, 20, 10, 30],
+  [30, 10, 20, 30, 30, 20, 10, 30],
+  [-10, 30, 10, 20, 20, 10, 30, -10],
+  [-20, -10, 30, 10, 10, 30, -10, -20],
+  [-30, -20, -10, 30, 30, -10, -20, -30],
+];
+
+var arrCenterManhattanDistance = [
+  [6, 5, 4, 3, 3, 4, 5, 6],
+  [5, 4, 3, 2, 2, 3, 4, 5],
+  [4, 3, 2, 1, 1, 2, 3, 4],
+  [3, 2, 1, 0, 0, 1, 2, 3],
+  [3, 2, 1, 0, 0, 1, 2, 3],
+  [4, 3, 2, 1, 1, 2, 3, 4],
+  [5, 4, 3, 2, 2, 3, 4, 5],
+  [6, 5, 4, 3, 3, 4, 5, 6]
 ];
 
 var kEvalBlack_end = reverseArray(kEvalWhite_end);
@@ -104,14 +115,18 @@ var kEvalBlack_end = reverseArray(kEvalWhite_end);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-function minimaxRoot(depth, game, color) {
-  let newGameMoves = moveOrdering(depth);
-  //use any negative large number
+function minimaxRoot(depth, game, color, time=0) {
+  let newGameMoves = moveOrdering();
   let bestValue = -Infinity;
   let bestMoveFound;
-  if (newGameMoves.length > 0) bestMoveFound = newGameMoves[0];
+
+  if (newGameMoves.length > 0){ bestMoveFound = newGameMoves[0];
 
   for (let i = 0; i < newGameMoves.length; i++) {
+    if (time!=0){
+      let newTime = new Date().getTime();
+      if (newTime - time > 5000){ return false }
+    }
     let newGameMove = newGameMoves[i];
 
     ai.move(newGameMove.move);
@@ -124,112 +139,95 @@ function minimaxRoot(depth, game, color) {
     if (i % 5 == 0) {
       console.log("move #" + i + " san:" + newGameMove.move.san);
     }
-    let boardValue = -negaMax2(
-      depth - 1,
-      game,
-      -Infinity,
-      Infinity,
-      color,
-      newGameMove
-    );
-
-    // if (boardValue == bestValue) {
-    //   if (Math.random() < 0.5) {
-    //     bestMoveFound = newGameMove;
-    //     print(
-    //       "(rng) BLACK NEW TACTIC " +
-    //         color * bestValue +
-    //         "\n" +
-    //         game.ascii() +
-    //         " from move: " +
-    //         newGameMove.move.san,
-    //       depth
-    //     );
-    //   }
-    // }
+    let boardValue = -negaMax2(depth - 1, game, -Infinity, Infinity, -color);
 
     if (boardValue > bestValue) {
       bestValue = boardValue;
       bestMoveFound = newGameMove;
       print(
-        "BLACK NEW TACTIC " + color * bestValue + "\n" + game.ascii(),
+        color + " NEW TACTIC " + color * bestValue + "\n" + game.ascii() + "\nfrom move: " +  bestMoveFound.move.san,
         depth
       );
     }
     ai.undo();
+    if (boardValue === Infinity){
+      break
+    }
   }
   ai.storeTranspositionTable(
     new TT_node({
-      move: bestMoveFound.move,
+      bestMove: bestMoveFound.move,
       score: bestValue,
       depth: depth,
       key: ai.currentHash,
       nodeType: "EXACT",
     })
   );
+}else{
+    if (game.in_stalemate()) value = 0;
+
+    ttEntry.score = value;
+    ttEntry.nodeType = "EXACT";
+    ttEntry.depth = depth;
+    ttEntry.bestMove = null; //be careful with moveOrdering
+    ai.storeTranspositionTable(ttEntry);
+  }
   positionCount++;
   return bestMoveFound;
 }
 
-function negaMax2(depth, game, alpha, beta, color, move) {
+function negaMax2(depth, game, alpha, beta, color) {
+  if (game.in_threefold_repetition()){return 0;} //doesnt work at depth 2 lol?
   let alphaOrig = alpha;
   let ttEntry = ai.lookupTable(ai.currentHash);
   if (ttEntry === null) {
-    // console.log("------------------------------------------");
-    // console.log("------------------------------------------");
-    // console.log("failed to find this hash:" + ai.currentHash + "    for the move:");
-    // console.log(move);
-    // console.log(game.ascii());
     ttEntry = new TT_node({
       score: null,
-      depth: -1,
+      depth: null,
       key: ai.currentHash,
       nodeType: "UNKNOWN",
     });
     // ai.storeTranspositionTable( ttEntry )
   } else if (ttEntry.depth >= depth) {
     if (ttEntry.nodeType == "EXACT") {
-      console.log("negamax ttable cut exact!");
+      // console.log("negamax ttable cut exact!");
       return ttEntry.score;
     } else if (ttEntry.nodeType == "LOWERBOUND") {
       alpha = Math.max(alpha, ttEntry.score);
-    }
-    // print("alpha! :" + alpha);
-    // print("beta! :" + beta);
-    else if (ttEntry.nodeType == "UPPERBOUND")
+    } else if (ttEntry.nodeType == "UPPERBOUND")
       beta = Math.min(beta, ttEntry.score);
 
     if (alpha >= beta) {
       return ttEntry.score;
-    } //console.log("negamax beta cut!");
+    }
   }
 
   if (depth === 0) {
-    return Quiesce(alpha, beta, 0, -color); // minus pour le minimax des noirs
+    return Quiesce(alpha, beta, 0, color); // minus pour le minimax des noirs
   }
 
-  let childNodes = moveOrdering(depth);
   let value = -Infinity;
-  let lastMove = childNodes[0];
+  let childNodes = moveOrdering();
+  let bestmove = null;
 
   if (childNodes.length > 0) {
+    bestmove = childNodes[0];
+
     for (let child of childNodes) {
       ai.move(child.move);
-      if (game.in_checkmate()) {
-        ai.undo();
-        value = Infinity;
-        break;
-      }
 
       value = Math.max(
         value,
-        -negaMax2(depth - 1, game, -beta, -alpha, -color, child)
+        -negaMax2(depth - 1, game, -beta, -alpha, -color)
       );
 
       ai.undo();
-      alpha = Math.max(alpha, value);
+
+      if (value > alpha) {
+        alpha = value;
+        bestmove = child;
+      }
       if (alpha >= beta) {
-        lastMove = child;
         break;
       }
     }
@@ -240,42 +238,49 @@ function negaMax2(depth, game, alpha, beta, color, move) {
     else if (value >= beta) ttEntry.nodeType = "LOWERBOUND";
     else ttEntry.nodeType = "EXACT";
     ttEntry.depth = depth;
-    ttEntry.move = lastMove.move;
+    ttEntry.bestMove = bestmove.move;
+    ai.storeTranspositionTable(ttEntry);
+  } else {
+
+    if (game.in_stalemate()) value = 0;
+
+    ttEntry.score = value;
+    ttEntry.nodeType = "EXACT";
+    ttEntry.depth = depth;
+    ttEntry.bestMove = null; //be careful with moveOrdering
     ai.storeTranspositionTable(ttEntry);
   }
+  //maybe store the TT even outside the if
 
   positionCount++;
   return value;
 }
 
 function Quiesce(alpha, beta, depth, color) {
-  let alphaOrig = alpha;
-  let ttEntry = ai.lookupTable(ai.currentHash);
-  if (ttEntry === null) {
-    ttEntry = new TT_node({
-      score: null,
-      depth: -1,
-      key: ai.currentHash,
-      nodeType: "UNKNOWN",
-    });
-  } else if (ttEntry.depth > -1) {
-    if (ttEntry.nodeType == "EXACT") {
-      console.log("quiesce ttable cut exact!");
-      return ttEntry.score;
-    } else if (ttEntry.nodeType == "LOWERBOUND") {
-      alpha = Math.max(alpha, ttEntry.score);
-    } else if (ttEntry.nodeType == "UPPERBOUND")
-      beta = Math.min(beta, ttEntry.score);
+  // let alphaOrig = alpha;
+  // let ttEntry = ai.lookupTable(ai.currentHash);
+  // if (ttEntry === null) {
+  //   ttEntry = new TT_node({
+  //     score: null,
+  //     depth: null,
+  //     key: ai.currentHash,
+  //     nodeType: "UNKNOWN",
+  //   });
+  // } else if (ttEntry.depth > -1) {
+  //   if (ttEntry.nodeType == "EXACT") {
+  //     console.log("quiesce ttable cut exact!");
+  //     return ttEntry.score;
+  //   } else if (ttEntry.nodeType == "LOWERBOUND") {
+  //     alpha = Math.max(alpha, ttEntry.score);
+  //   } else if (ttEntry.nodeType == "UPPERBOUND")
+  //     beta = Math.min(beta, ttEntry.score);
 
-    if (alpha >= beta) {
-      return ttEntry.score;
-    } //console.log("quiesce beta cut!");
-  }
+  //   if (alpha >= beta) {
+  //     return ttEntry.score;
+  //   } //console.log("quiesce beta cut!");
+  // }
 
-  if (debug) {
-    print(depth + ": QUIET");
-  }
-  depth += 1;
+  depth -= 1;
 
   let bestValue = color * evaluateBoard(game.board(), debug, depth); // minus pour le minimax des noirs
 
@@ -287,35 +292,34 @@ function Quiesce(alpha, beta, depth, color) {
   let allMoves = quiesMoveOrdering2(); //  game.moves({verbose: true}); //
 
   if (allMoves.length > 0) {
-    let lastMove = allMoves[0];
+    let bestmove = allMoves[0];
     for (let i = 0; i < allMoves.length; i++) {
       let move = allMoves[i];
-      // if (move.flags === "c") {
-      //see(move.from, move.to, color) > 0){
-      ai.move(move.move);
-      if (debug) {
-        print(move.iccs);
-      }
-      let score = -Quiesce(-beta, -alpha, depth, -color);
-      ai.undo();
+      if (seeCapture(move.move) > 0) {
+        ai.move(move.move);
+        if (debug) {
+          print(move.iccs);
+        }
+        let score = -Quiesce(-beta, -alpha, depth, -color);
+        ai.undo();
 
-      alpha = Math.max(alpha, score);
-      if (alpha >= beta) {
-        lastMove = move;
-        break;
+        alpha = Math.max(alpha, score);
+        if (alpha >= beta) {
+          bestmove = move;
+          break;
+        }
       }
 
       // }
     }
-    //print("quiesce best score was :" + color * bestValue, 2);
 
-    ttEntry.score = alpha;
-    if (alpha <= alphaOrig) ttEntry.nodeType = "UPPERBOUND";
-    else if (alpha >= beta) ttEntry.nodeType = "LOWERBOUND";
-    else ttEntry.nodeType = "EXACT";
-    ttEntry.depth = 0;
-    ttEntry.move = lastMove.move;
-    ai.storeTranspositionTable(ttEntry);
+    // ttEntry.score =la;
+    // if (alpha <= alphaOrig) ttEntry.nodeType = "UPPERBOUND";
+    // else if (alpha >= beta) ttEntry.nodeType = "LOWERBOUND";
+    // else ttEntry.nodeType = "EXACT";
+    // ttEntry.depth = depth;
+    // ttEntry.move = lastMove.move;
+    // ai.storeTranspositionTable(ttEntry);
   }
 
   positionCount2++;
@@ -343,9 +347,9 @@ function quiesMoveOrdering2() {
   for (let move of gamesMoves) {
     let key = ai.xorHashfromMove(move);
 
-    let moveInTable = ai.transpositionTable[(key + 2147483648) % 524287];
+    let moveInTable = ai.lookupTable(key);
 
-    let node = { move: move, score: null, depth: -1 };
+    let node = { move: move, key: key, depth: null, score: null };
 
     switch (move.captured) {
       case "p":
@@ -385,14 +389,7 @@ function quiesMoveOrdering2() {
         break;
     }
 
-    if (
-      moveInTable != null &&
-      moveInTable.key == node.key &&
-      moveInTable.key == "EXACT"
-    ) {
-      //logic: even if the position only has a depth of 1, if the value is EXACT then it already did the Quiescence portion
-
-      //add a case where its not the same move, then check +1
+    if (moveInTable != null && moveInTable.key == node.key) {
       node.score = moveInTable.score;
       node.depth = moveInTable.depth;
       movesOrdered.push(node);
@@ -401,23 +398,24 @@ function quiesMoveOrdering2() {
       movesOrdered.push(node);
     }
   }
-  return quickSort(movesOrdered, ["depth", "mvv", "lva"]);
+  movesOrdered = quickSort2(movesOrdered, "lva", 1);
+  movesOrdered = quickSort2(movesOrdered, "mvv", 1);
+  movesOrdered = quickSort2(movesOrdered, "score", 1);
+  return movesOrdered;
 }
 
-function moveOrdering(depth) {
-  // bestSuggestedMove
-
-  // let bestMove = ai.lookupTable[ ai.currentHash() ]
-
+function moveOrdering() {
   let movesOrdered = [];
   const gamesMoves = game.moves({ verbose: true });
 
+  // if (ai.lookupTable(ai.currentHash) != null){
+  //   const PVmove = ai.lookupTable(ai.currentHash).bestMove
+  // }
+
   for (let move of gamesMoves) {
     let key = ai.xorHashfromMove(move);
-
-    let moveInTable = ai.transpositionTable[(key + 2147483648) % 524287];
-
-    let node = { move: move, score: null, depth: -1 };
+    let moveInTable = ai.lookupTable(key);
+    let node = { move: move, key: key, depth: null, score: null };
 
     if (move.flags.includes("c")) {
       switch (move.captured) {
@@ -468,6 +466,7 @@ function moveOrdering(depth) {
     if (moveInTable != null && moveInTable.key == node.key) {
       node.score = moveInTable.score;
       node.depth = moveInTable.depth;
+      node.bestMove = moveInTable.bestMove;
 
       //add a case where its not the same move, then check +1
 
@@ -475,8 +474,21 @@ function moveOrdering(depth) {
     } else {
       movesOrdered.push(node);
     }
-
-    // if ( moveInTable === null){ ai.storeTranspositionTable(node) }
   }
-  return quickSort(movesOrdered, ["depth", "mvv"]);
+  movesOrdered = quickSort2(movesOrdered, "mvv", 1);
+  movesOrdered = quickSort2(movesOrdered, "score", -1);
+  movesOrdered = quickSort2(movesOrdered, "depth", 1);
+
+  // put PV node at the top
+  let moveInTable = ai.lookupTable(ai.currentHash)
+  if (moveInTable && moveInTable.bestMove && movesOrdered.length>1){
+    if (moveInTable.bestMove != movesOrdered[0].move){
+      for (let i=0; i<movesOrdered.length; i++){
+        if (movesOrdered[i].move.san === moveInTable.bestMove.san){
+          movesOrdered.unshift(movesOrdered.splice(i, 1)[0])
+        }
+      }
+    }
+  }
+  return movesOrdered;
 }

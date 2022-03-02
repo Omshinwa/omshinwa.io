@@ -21,12 +21,6 @@ function currentHash() {
 function hashBoard() {
   return ai.zobrist.hashBoard();
 }
-function reversemove(move) {
-  let x = move.from;
-  move.from = move.to;
-  move.to = x;
-  return move;
-}
 function reload() {
   board.position(game.fen());
   ai.currentHash = ai.zobrist.hashBoard();
@@ -59,20 +53,18 @@ function print(e, type) {
 }
 
 function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function autoPlay(){
-
-  while (game.game_over() == false){
-    makeRandomMove()
+async function autoPlay() {
+  while (game.game_over() == false) {
+    makeRandomMove();
     await sleep(300);
   }
   alert("Game over");
 }
 
 function makeRandomMove() {
-
   if (game.game_over()) {
     alert("Game over");
     return;
@@ -101,13 +93,15 @@ function makeRandomMove() {
   board.position(game.fen());
 
   if (game.game_over()) {
-    window.setTimeout( function(){alert("Game over")}, 250);
+    window.setTimeout(function () {
+      alert("Game over");
+    }, 250);
   }
-  
 }
 
 class TT_node {
   constructor({
+    bestMove = null,
     move = null,
     key = null,
     score = null,
@@ -121,6 +115,7 @@ class TT_node {
     this.depth = depth;
     this.key = key;
     this.nodeType = nodeType; // three types: exact, alpha or beta
+    this.bestMove = bestMove;
   }
 }
 
@@ -139,16 +134,12 @@ class Ai_Chess {
 
     if (oldHash === null) {
       this.transpositionTable[(ttEntry.key + 2147483648) % 524287] = ttEntry;
-    } else if (ttEntry.depth > oldHash.depth) {
-      console.log("replaced " + oldHash.key + " with " + ttEntry.key);
+    } else if (ttEntry.depth > oldHash.depth || oldHash.key != ttEntry.key) {
+      // if( oldHash.score != Infinity && oldHash.score != -Infinity ){ // otherwise he keeps rewriting short checkmates with longer ones
+      console.log("replaced " + oldHash.key);
+      if (oldHash.key != ttEntry.key) console.log(" with " + ttEntry.key);
       this.transpositionTable[(ttEntry.key + 2147483648) % 524287] = ttEntry;
-    } else if (
-      ttEntry.depth == oldHash.depth &&
-      ttEntry.nodeType === "EXACT" &&
-      oldHash.nodeType != "EXACT"
-    ) {
-      console.log("replaced2 " + oldHash.key + " with " + ttEntry.key);
-      this.transpositionTable[(ttEntry.key + 2147483648) % 524287] = ttEntry;
+      // }
     }
   }
 
@@ -159,39 +150,18 @@ class Ai_Chess {
 
   gameProgress() {
     let string = game.fen();
-    if (!string.includes("Q") && !string.includes("q")) {
+    if (!string.includes("Q") || !string.includes("q")) {
       return 1.0;
     } else {
       return 0.0;
     }
   }
   move(move) {
-    if (ai.currentHash!=ai.zobrist.hashBoard()){
-      console.log("desync")
-      debugger;
-    }
-    const isValid = game.move(move);
-    const j = move.from[0].charCodeAt(0) - 97;
-    const i = 8 - parseInt(move.from[1]);
-    const j2 = move.to[0].charCodeAt(0) - 97;
-    const i2 = 8 - parseInt(move.to[1]);
-    this.currentHash ^=
-      this.zobrist.hash[Zobrist.piece(move.piece, move.color) + i + j * 8];
-    this.currentHash ^=
-      this.zobrist.hash[Zobrist.piece(move.piece, move.color) + i2 + j2 * 8];
-    this.currentHash ^= this.zobrist.hash[780]; //last element
+    this.currentHash = this.xorHashfromMove(move);
+    const isValid = game.fast_move(move);
 
-    if (move.flags.includes("c")) {
-      this.currentHash ^=
-        this.zobrist.hash[
-          Zobrist.piece(move.captured, move.color == "w" ? "b" : "w") +
-            i2 +
-            j2 * 8
-        ];
-    }    
-    if (ai.currentHash!=ai.zobrist.hashBoard()){
-      //here put a break point!
-      console.log("desync")
+    if (ai.currentHash != ai.zobrist.hashBoard() || isValid === false) {
+      console.log("desync");
       debugger;
     }
     //ADD CASTLING RIGHTS ETC
@@ -199,70 +169,206 @@ class Ai_Chess {
 
   undo() {
     const move = game.undo();
-    const j = move.from[0].charCodeAt(0) - 97;
-    const i = 8 - parseInt(move.from[1]);
-    const j2 = move.to[0].charCodeAt(0) - 97;
-    const i2 = 8 - parseInt(move.to[1]);
-    this.currentHash ^=
-      this.zobrist.hash[Zobrist.piece(move.piece, move.color) + i + j * 8];
-    this.currentHash ^=
-      this.zobrist.hash[Zobrist.piece(move.piece, move.color) + i2 + j2 * 8];
-    this.currentHash ^= this.zobrist.hash[780]; //last element
-
-    if (move.flags.includes("c")) {
-      this.currentHash ^=
-        this.zobrist.hash[
-          Zobrist.piece(move.captured, move.color == "w" ? "b" : "w") +
-            i2 +
-            j2 * 8
-        ];
-    }
-    //ADD CASTLING RIGHTS ETC
+    this.currentHash = this.xorHashfromMove(move);
   }
 
-  xorHashfromMove(move) {
+  xorHashfromMove(move, hash = this.currentHash) {
     //we are one move away from the position
 
-    let hash = this.currentHash;
     const j = move.from[0].charCodeAt(0) - 97;
     const i = 8 - parseInt(move.from[1]);
     const j2 = move.to[0].charCodeAt(0) - 97;
     const i2 = 8 - parseInt(move.to[1]);
     hash ^=
-      this.zobrist.hash[Zobrist.piece(move.piece, move.color) + i + j * 8];
+      this.zobrist.hash[
+        Zobrist.piece(move.piece, move.color) * 64 + (j + i * 8)
+      ];
     hash ^=
-      this.zobrist.hash[Zobrist.piece(move.piece, move.color) + i2 + j2 * 8];
-    hash ^= this.zobrist.hash[780]; //last element
-    //ADD CASTLING RIGHTS ETC
+      this.zobrist.hash[
+        Zobrist.piece(move.piece, move.color) * 64 + (j2 + i2 * 8)
+      ];
 
-    if (move.flags.includes("c")) {
+    hash ^= this.zobrist.hash[780]; // turn change
+
+    if (move.flags === "n" || move.flags === "b") {
+      //ok nothing to see here
+    } else if (move.flags === "c") {
       hash ^=
         this.zobrist.hash[
-          Zobrist.piece(move.captured, move.color == "w" ? "b" : "w") +
-            i2 +
-            j2 * 8
+          Zobrist.piece(move.captured, move.color === "w" ? "b" : "w") * 64 +
+            (j2 + i2 * 8)
         ];
+    } else if (move.flags === "k") {
+      if (move.color === "w") {
+        //check if i should use var or define the let outside?
+        var row = 7;
+        var index = 0;
+      } else {
+        var row = 0;
+        var index = 2;
+      }
+      hash ^=
+        this.zobrist.hash[Zobrist.piece("r", move.color) * 64 + (row * 8 + 7)]; //h1
+      hash ^=
+        this.zobrist.hash[Zobrist.piece("r", move.color) * 64 + (row * 8 + 5)]; //f1
+
+      //the hashBoard cant hash the castling rights rn
+      // hash ^= this.zobrist.hash[12 * 64 + index]; //f1   12 * 64 + 4
+    } else if (move.flags === "q") {
+      if (move.color === "w") {
+        var row = 7;
+        var index = 1;
+      } else {
+        var row = 0;
+        var index = 3;
+      }
+      hash ^=
+        this.zobrist.hash[Zobrist.piece("r", move.color) * 64 + (row * 8 + 0)]; //a1
+      hash ^=
+        this.zobrist.hash[Zobrist.piece("r", move.color) * 64 + (row * 8 + 3)]; //d1
+      // hash ^= this.zobrist.hash[12 * 64 + index]; //f1   12 * 64 + 4
+    } else if (move.flags === "e") {
+      let row = move.color === "w" ? 3 : 4;
+      hash ^=
+        this.zobrist.hash[
+          Zobrist.piece("p", move.color === "w" ? "b" : "w") * 64 +
+            (row * 8 + j2)
+        ];
+    } else if (move.flags === "np") {
+      hash ^=
+        this.zobrist.hash[
+          Zobrist.piece(move.piece, move.color) * 64 + (j2 + i2 * 8)
+        ];
+      hash ^=
+        this.zobrist.hash[Zobrist.piece(move.promotion, move.color) * 64 + (j2 + i2 * 8)];
+    } else if (move.flags === "cp") {
+      hash ^=
+        this.zobrist.hash[
+          Zobrist.piece(move.captured, move.color == "w" ? "b" : "w") * 64 +
+            (j2 + i2 * 8)
+        ];
+      hash ^=
+        this.zobrist.hash[
+          Zobrist.piece(move.piece, move.color) * 64 + (j2 + i2 * 8)
+        ];
+      hash ^=
+        this.zobrist.hash[Zobrist.piece(move.promotion, move.color) * 64 + (j2 + i2 * 8)];
     }
 
     return hash;
   }
+
+  // @staticmethod
+  static distanceBetweenKings() {
+    let where = [];
+    for (let i = 0; i < game.board().length; i++) {
+      for (let j = 0; j < game.board()[i].length; j++) {
+        if (game.board()[i][j] != null && game.board()[i][j].type === "k")
+          where.push([i, j]);
+      }
+    }
+    return (
+      Math.abs(where[0][0] - where[1][0]) + Math.abs(where[0][1] - where[1][1])
+    );
+  }
+
+  static kingMoves(i) {
+    if (i === 0) {
+      return game.moves({ verbose: true }).filter((obj) => obj.piece === "k")
+        .length;
+    }
+    let moveCount = 0;
+    let moves = game
+      .moves({ verbose: true })
+      .filter((obj) => obj.piece === "k");
+    for (let move of moves) {
+      game.fast_move(move);
+      game.fast_move("--");
+      moveCount += Ai_Chess.kingMoves(i - 1);
+      game.fast_move("--");
+      game.undo();
+    }
+    return moveCount;
+  }
+
+  static evalKingMoves(i = 0) {
+    let whiteMoves = 0;
+    let blackMoves = 0;
+    if (game.turn() === "w") {
+      whiteMoves = Ai_Chess.kingMoves(i);
+      game.fast_move("--");
+      blackMoves = Ai_Chess.kingMoves(i);
+    } else if (game.turn() === "b") {
+      blackMoves = Ai_Chess.kingMoves(i);
+      game.fast_move("--");
+      whiteMoves = Ai_Chess.kingMoves(i);
+    }
+    game.fast_move("--");
+    return whiteMoves - blackMoves;
+  }
+
+  static centerManhattanDistance(totalEvaluation) {
+    if (totalEvaluation == 0) return 0;
+    let color = "w";
+    let score = 0;
+    if (totalEvaluation > 0) {
+      color = "b";
+    }
+
+    for (let i = 0; i < 8; i++) {
+      for (let j = 0; j < 8; j++) {
+        if (
+          game.board()[i][j] != null &&
+          game.board()[i][j].type === "k" &&
+          game.board()[i][j].color === color
+        ) {
+          score = arrCenterManhattanDistance[i][j];
+          break;
+        }
+      }
+    }
+    return score;
+  }
 }
 
-function array_move(arr, old_index, new_index) {
-  if (new_index >= arr.length) {
-    var k = new_index - arr.length + 1;
-    while (k--) {
-      arr.push(undefined);
+function get_smallest_attacker(x, y, square) {
+  const gameMoves = game
+    .moves({ verbose: true })
+    .filter((obj) => obj.to === square);
+  let bestMove = false;
+  let value = 9999;
+  for (let move of gameMoves) {
+    const j = move.from[0].charCodeAt(0) - 97;
+    const i = 8 - parseInt(move.from[1]);
+    if (qEval(i, j, 1) < value) {
+      value = qEval(i, j, 1);
+      bestMove = move;
     }
   }
-  arr.splice(new_index, 0, arr.splice(old_index, 1)[0]);
-  return arr; // for testing
+  return bestMove;
 }
 
-function see(from, to, color) {
-  value =
-    Math.abs(qEval(9 - to[1], to[0].charCodeAt(0) - 97)) -
-    Math.abs(qEval(9 - from[1], from[0].charCodeAt(0) - 97));
+function see(x, y, square) {
+  let value = 0;
+  let move = get_smallest_attacker(x, y, square);
+  if (move) {
+    const vCapture = stupidEval(move.captured);
+    game.fast_move(move);
+    value = Math.max(0, vCapture - see(x, y, square));
+    game.undo();
+  }
+  return value;
+}
+
+function seeCapture(move) {
+  let value = 0;
+  const j2 = move.to[0].charCodeAt(0) - 97;
+  const i2 = 8 - parseInt(move.to[1]);
+  const vCapture = stupidEval(move.captured);
+  // debugger;
+  game.fast_move(move);
+  value = vCapture - see(i2, j2, move.to);
+  game.undo();
   return value;
 }
 
@@ -274,18 +380,17 @@ function isWhiteturn() {
 }
 
 function getBestMove(game) {
-
   positionCount3 = 0;
   positionCount2 = 0;
   positionCount = 0;
   ai.PVmoves = [];
 
-  let depth = parseInt($("#search-depth").find(":selected").text());
+  let depth = document.getElementById("search-depth").value;
 
-  let d = new Date().getTime();
-  let bestMove = iterativeDeepening(depth, game, isWhiteturn());
+  let startTime = new Date().getTime();
+  let bestMove = iterativeDeepening(game, isWhiteturn(), startTime, depth);
   let d2 = new Date().getTime();
-  let moveTime = d2 - d;
+  let moveTime = d2 - startTime;
   let positionsPerS = (positionCount * 1000) / moveTime;
 
   $("#position-count").text(positionCount);
@@ -296,51 +401,122 @@ function getBestMove(game) {
   return bestMove.move;
 }
 
-function iterativeDeepening(depth, game, isWhiteturn){
-  let bestMove=''
-  for (let i=1; i<depth+1; i++){
-    print("-----iterativeDeep------------"+i+"----------------",depth)
-    bestMove = minimaxRoot(depth, game, isWhiteturn);
+function iterativeDeepening(game, isWhiteturn, time, depth = 0) {
+  let bestMove = "";
+  let newTime = new Date().getTime();
+  if (depth > 0) {
+    for (let i = 1; i < depth + 1; i++) {
+      print("-----iterativeDeep------------" + i + "----------------", depth);
+      bestMove = minimaxRoot(i, game, isWhiteturn, 0);
+    }
+  } else {
+    let i = 1;
+    let searchedMove = "";
+    while (newTime - time < 5000) {
+      print("-----iterativeDeep------------" + i + "----------------", depth);
+      searchedMove = minimaxRoot(i, game, isWhiteturn, i<2? 0:time);
+      if (searchedMove) {
+        bestMove = searchedMove;
+      }
+      i++;
+      newTime = new Date().getTime();
+    }
   }
-  return bestMove
+  return bestMove;
 }
 
 function evaluateBoard(board, debug = false, depth = null) {
   positionCount3++;
-  var totalEvaluation = 0;
-  for (var i = 0; i < 8; i++) {
-    for (var j = 0; j < 8; j++) {
-      totalEvaluation = totalEvaluation + qEval(i, j);
-    }
-  }
-  const moveAdvantage = game.moves({ verbose: true }).length - getOpponentMoves(game).length;
-  const score = totalEvaluation + moveAdvantage;
+  if (game.in_stalemate()) return 0;
+  let totalEvaluation = 0;
 
+  if (ai.gameProgress() > 0.5) {
+    let whiteMoves;
+    let blackMoves;
+    if (game.turn() == "w") {
+      whiteMoves = game.moves().length;
+      if (whiteMoves === 0) return -Infinity; //u have been checkmated
+      blackMoves = getOpponentMoves(game).length;
+    } else {
+      blackMoves = game.moves().length;
+      if (blackMoves === 0) return -Infinity;
+      whiteMoves = getOpponentMoves(game).length;
+    }
+    for (let i = 0; i < 8; i++) {
+      for (let j = 0; j < 8; j++) {
+        let square = game.board()[i][j];
+        if (square != null) {
+          if (square.color === "w") {
+            totalEvaluation += stupidEval(square.type);
+          } else {
+            totalEvaluation -= stupidEval(square.type);
+          }
+        }
+      }
+    }
+    let winning = Math.sign(totalEvaluation);
+    totalEvaluation +=
+      totalEvaluation *
+      (20 -
+        Ai_Chess.distanceBetweenKings() +
+        Ai_Chess.centerManhattanDistance(winning));
+    // totalEvaluation = winning * totalEvaluation
+  } else {
+    for (let i = 0; i < 8; i++) {
+      for (let j = 0; j < 8; j++) {
+        totalEvaluation += qEval(i, j);
+      }
+    }
+    let whiteMoves;
+    let blackMoves;
+    if (game.turn() === "w") {
+      whiteMoves = game.moves().length;
+      if (whiteMoves === 0) return -Infinity; //u have been checkmated
+      blackMoves = getOpponentMoves(game).length;
+    } else {
+      blackMoves = game.moves().length;
+      if (blackMoves === 0) return -Infinity;
+      whiteMoves = getOpponentMoves(game).length;
+    }
+    //redundant because in negamax, if there's no move it returns -infinity anyway so it never reaches eval usually
+    totalEvaluation += whiteMoves - blackMoves;
+  }
   if (debug) {
     print(
       "score:" +
-      score +
-      "\n" +
-      "moveAdvantage:" +
-      moveAdvantage +
-      "\n" +
-      game.ascii()
+        totalEvaluation +
+        "\n" +
+        "moveAdvantage:" +
+        (myMoves.length - oppMoves.length) +
+        "\n" +
+        game.ascii()
     );
   }
-  // rewrite
-  // if (game.fen() in ai.transpositionTable) {
-  //     if ( depth >= ai.transpositionTable[game.fen()].depth ){
-  //       ai.addToTable(move) =
-  //     }
-  // }
-  return score;
+  return totalEvaluation;
 }
 
-function qEval(i, j) {
-  return getPieceValue(game.board()[i][j], i, j);
+function qEval(i, j, abs = false) {
+  return getPieceValue(game.board()[i][j], i, j, abs);
 }
 
-var getPieceValue = function (piece, x, y) {
+function stupidEval(piece) {
+  switch (piece) {
+    case "p":
+      return 1;
+    case "n":
+      return 3;
+    case "b":
+      return 3;
+    case "r":
+      return 5;
+    case "q":
+      return 9;
+    case "k":
+      return 99;
+  }
+}
+
+function getPieceValue(piece, x, y, abs = false) {
   var a = String.fromCharCode(97 + y);
   var b = 9 - x;
   if (piece === null) {
@@ -376,10 +552,14 @@ var getPieceValue = function (piece, x, y) {
   };
 
   let absoluteValue = getAbsoluteValue(piece, piece.color === "w", x, y);
-  return piece.color === "w" ? absoluteValue : -absoluteValue;
-};
+  if (abs) {
+    return absoluteValue;
+  } else {
+    return piece.color === "w" ? absoluteValue : -absoluteValue;
+  }
+}
 
-function ascii2(game) {
+function ascii2() {
   //use ingame to show the value of each pieces
 
   let s = "   +------------------------------------------------+\n";
@@ -423,14 +603,16 @@ function quickSort(array, propertyArr) {
     return array;
   }
 
-  let pivot = array[0]; 
+  let pivot = array[0];
   let left = [];
   let right = [];
 
   for (let i = 1; i < array.length; i++) {
     for (let j = 0; j < propertyArr.length; j++) {
-
-      if (array[i][propertyArr[j]] != pivot[propertyArr[j]] || (j === propertyArr.length-1) ) {
+      if (
+        array[i][propertyArr[j]] != pivot[propertyArr[j]] ||
+        j === propertyArr.length - 1
+      ) {
         if (array[i][propertyArr[j]] > pivot[propertyArr[j]]) {
           left.push(array[i]);
         } else {
@@ -448,27 +630,30 @@ function quickSort(array, propertyArr) {
   );
 }
 
-function quickSort2(array) {
+function quickSort2(array, property, bigFirst = 1) {
   ////this only sort by a property
   if (array.length <= 1) {
     return array;
   }
 
-  let pivot = array[0]; // choosing first index gives worst case scenario when the array is already sorted, but it's never going to be the case
-
+  let pivot = array[0];
   let left = [];
   let right = [];
 
   for (let i = 1; i < array.length; i++) {
-    if (array[i].depth == pivot.depth) {
-      array[i].score < pivot.score ? left.push(array[i]) : right.push(array[i]);
+    if (array[i][property] == pivot[property]) {
+      right.push(array[i]);
     } else {
-      array[i].depth < pivot.depth ? left.push(array[i]) : right.push(array[i]);
+      bigFirst * array[i][property] < bigFirst * pivot[property]
+        ? right.push(array[i])
+        : left.push(array[i]);
     }
-    //the property is eval
   }
 
-  return quickSort2(left).concat(pivot, quickSort2(right));
+  return quickSort2(left, property, bigFirst).concat(
+    pivot,
+    quickSort2(right, property, bigFirst)
+  );
 }
 
 class Zobrist {
@@ -512,9 +697,9 @@ class Zobrist {
         if (game.board()[i][j] != null) {
           h ^=
             this.hash[
-              Zobrist.piece(game.board()[i][j].type, game.board()[i][j].color) +
-                i +
-                j * 8
+              Zobrist.piece(game.board()[i][j].type, game.board()[i][j].color) *
+                64 +
+                (i * 8 + j)
             ];
         }
       }
@@ -524,5 +709,7 @@ class Zobrist {
       h ^= this.hash[780];
     }
     return h;
+
+    //castlings etc
   }
 }

@@ -1284,19 +1284,13 @@ var Chess = function(fen) {
         /* does the user want a full move object (most likely not), or just
          * SAN
          */
-        if (typeof options !== 'undefined'){
-          if ('verbose' in options &&
-          options.verbose){
-            moves.push(make_pretty(ugly_moves[i]))
-          }
-          else if(typeof options !== 'undefined' &&
-        'nullmove' in options &&  //added omshinwa
-        options.nullmove){}
-        else {
-          moves.push(move_to_san(ugly_moves[i], false))
-        }
-        }
-        else {
+        if (
+          typeof options !== 'undefined' &&
+          'verbose' in options &&
+          options.verbose
+        ) {
+          moves.push(make_pretty(ugly_moves[i]))
+        } else {
           moves.push(move_to_san(ugly_moves[i], false))
         }
       }
@@ -1677,12 +1671,13 @@ var Chess = function(fen) {
       return pretty_move
     },
 
-    null_move: function() {
-      turn = swap_color(turn)
-    },
     //omshinwa
     fast_move: function(move) {
       //difference is we only take in Object move arguments
+      if (move==="--"){ //pass turn
+        turn = swap_color(turn)
+        return move
+      }
       var move_obj = null
 
         var moves = generate_moves()
@@ -1702,7 +1697,7 @@ var Chess = function(fen) {
       // }
 
       /* failed to find move */
-      if (!move_obj) {
+      if (!move_obj) {make_move
         return null
       }
 
