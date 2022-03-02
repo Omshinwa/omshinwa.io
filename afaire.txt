@@ -2,6 +2,11 @@ even better move ordering (killer history or whatever)
 zobrist case take into account castles etc
 use chess.js native obj move to move stuff
 
+﻿
+game.load('rnbqkbnr/1ppppppp/8/p7/4P3/8/PPPP1PPP/RNBQKBNR w KQkq a6 0 2'); reload(); 
+move = quiesMoveOrdering2()[0]; game.null_move()
+
+5k2/5R2/4K3/8/8/8/8/8 w - - 0 1
 
 --------------------------------------------------------
 iterative deepening
