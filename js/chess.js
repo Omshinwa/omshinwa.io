@@ -1290,8 +1290,8 @@ var Chess = function(fen) {
             moves.push(make_pretty(ugly_moves[i]))
           }
           else if(typeof options !== 'undefined' &&
-        'nullmove' in options &&  //added omshinwa
-        options.nullmove){}
+        'null_move' in options &&  //added omshinwa
+        options.null_move){  moves.push(ugly_moves[i]) }
         else {
           moves.push(move_to_san(ugly_moves[i], false))
         }

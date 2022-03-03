@@ -6,7 +6,6 @@ var positionCount = 0;
 var positionCount2 = 0;
 var positionCount3 = 0;
 var previousQuiesMoves = [];
-var previousQuiesMoves2 = [];
 
 //please delete these after debugging
 function bite() {
@@ -433,13 +432,13 @@ function evaluateBoard(board, debug = false, depth = null) {
   if (ai.gameProgress() > 0.5) {
     let whiteMoves;
     let blackMoves;
-    if (game.turn() == "w") {
+    if (game.turn() === "w") {
       whiteMoves = game.moves().length;
       if (whiteMoves === 0) return -Infinity; //u have been checkmated
       blackMoves = getOpponentMoves(game).length;
     } else {
       blackMoves = game.moves().length;
-      if (blackMoves === 0) return -Infinity;
+      if (blackMoves === 0) return Infinity;
       whiteMoves = getOpponentMoves(game).length;
     }
     for (let i = 0; i < 8; i++) {
@@ -447,16 +446,16 @@ function evaluateBoard(board, debug = false, depth = null) {
         let square = game.board()[i][j];
         if (square != null) {
           if (square.color === "w") {
-            totalEvaluation += stupidEval(square.type);
+            totalEvaluation += stupidEval(square.type)*100;
           } else {
-            totalEvaluation -= stupidEval(square.type);
+            totalEvaluation -= stupidEval(square.type)*100;
           }
         }
       }
     }
     let winning = Math.sign(totalEvaluation);
     totalEvaluation +=
-      totalEvaluation *
+      totalEvaluation * 0.05 *
       (20 -
         Ai_Chess.distanceBetweenKings() +
         Ai_Chess.centerManhattanDistance(winning));
@@ -475,7 +474,7 @@ function evaluateBoard(board, debug = false, depth = null) {
       blackMoves = getOpponentMoves(game).length;
     } else {
       blackMoves = game.moves().length;
-      if (blackMoves === 0) return -Infinity;
+      if (blackMoves === 0) return Infinity;
       whiteMoves = getOpponentMoves(game).length;
     }
     //redundant because in negamax, if there's no move it returns -infinity anyway so it never reaches eval usually

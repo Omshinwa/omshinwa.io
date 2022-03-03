@@ -6,8 +6,8 @@ var ai = new Ai_Chess(
   parseInt($("#search-depth").find(":selected").text())
 );
 // var zobrist = new Zobrist()
-var whiteSquareGrey = "#a9a9a9";
-var blackSquareGrey = "#696969";
+var whiteSquareGrey = "#f9f9a9";
+var blackSquareGrey = "#a9a969";
 var squareToHighlight = null;
 var squareClass = "square-55d63";
 var colorToHighlight = "";
@@ -47,10 +47,11 @@ function onDragStart(source, piece) {
 }
 
 /* untested, seems to save history so you can continue using .undo() */
-let getOpponentMoves = (game) => {
-  game.fast_move("--")
-  let moves = game.moves({legal:false, nullmove:true});
-  game.fast_move("--")
+let getOpponentMoves = () => {
+  // return []
+  game.null_move()
+  let moves = game.moves({legal:false, null_move:true});
+  game.null_move()
   return moves;
 };
 
@@ -67,11 +68,13 @@ function onDrop(source, target) {
 
   ai.currentHash = ai.xorHashfromMove(move)
 
-  removeHighlights("white");
+  let color = '';
+  color = move.color === "w" ? 'white':'black'
+  removeHighlights(color);
   removeGreySquares();
-
-  $board.find(".square-" + source).addClass("highlight-white");
-  $board.find(".square-" + target).addClass("highlight-white");
+  
+  $board.find(".square-" + source).addClass("highlight-" + color);
+  $board.find(".square-" + target).addClass("highlight-" + color);
 
   // make random move for black
   if ( document.getElementById("no_computer").checked == false)

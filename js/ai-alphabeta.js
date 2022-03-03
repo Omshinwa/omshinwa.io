@@ -257,28 +257,6 @@ function negaMax2(depth, game, alpha, beta, color) {
 }
 
 function Quiesce(alpha, beta, depth, color) {
-  // let alphaOrig = alpha;
-  // let ttEntry = ai.lookupTable(ai.currentHash);
-  // if (ttEntry === null) {
-  //   ttEntry = new TT_node({
-  //     score: null,
-  //     depth: null,
-  //     key: ai.currentHash,
-  //     nodeType: "UNKNOWN",
-  //   });
-  // } else if (ttEntry.depth > -1) {
-  //   if (ttEntry.nodeType == "EXACT") {
-  //     console.log("quiesce ttable cut exact!");
-  //     return ttEntry.score;
-  //   } else if (ttEntry.nodeType == "LOWERBOUND") {
-  //     alpha = Math.max(alpha, ttEntry.score);
-  //   } else if (ttEntry.nodeType == "UPPERBOUND")
-  //     beta = Math.min(beta, ttEntry.score);
-
-  //   if (alpha >= beta) {
-  //     return ttEntry.score;
-  //   } //console.log("quiesce beta cut!");
-  // }
 
   depth -= 1;
 
@@ -324,10 +302,6 @@ function Quiesce(alpha, beta, depth, color) {
 
   positionCount2++;
   return alpha;
-}
-
-function Quiesce2(alpha, beta, depth, color) {
-  return color * evaluateBoard(game.board(), debug, depth); // minus pour le minimax des noirs
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
