@@ -293,10 +293,8 @@ function get_smallest_attacker(square) {
   let bestMove = false;
   let value = 9999;
   for (let move of gameMoves) {
-    const j = move.from[0].charCodeAt(0) - 97;
-    const i = 8 - parseInt(move.from[1]);
-    if (qEval(i, j, 1) < value) {
-      value = qEval(i, j, 1);
+    if (stupidEval(move.piece) < value) {
+      value = stupidEval(move.piece);
       bestMove = move;
     }
   }
@@ -367,7 +365,7 @@ function iterativeDeepening(game, isWhiteturn, time, depth = 0) {
   } else {
     let i = 1;
     let searchedMove = "";
-    while (newTime - time < 5000) {
+    while (newTime - time < 5000 && depth<13) {
       print("-----iterativeDeep------------" + i + "----------------", depth);
       searchedMove = minimaxRoot(i, game, isWhiteturn, i<2? 0:time);
       if (searchedMove) {

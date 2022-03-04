@@ -1,4 +1,3 @@
-
 var reverseArray = function (array) {
   return array.slice().reverse();
 };
@@ -127,16 +126,17 @@ function evaluateBoard(board, debug = false, depth = null) {
         let square = game.board()[i][j];
         if (square != null) {
           if (square.color === "w") {
-            totalEvaluation += stupidEval(square.type)*100;
+            totalEvaluation += stupidEval(square.type) * 100;
           } else {
-            totalEvaluation -= stupidEval(square.type)*100;
+            totalEvaluation -= stupidEval(square.type) * 100;
           }
         }
       }
     }
     let winning = Math.sign(totalEvaluation);
     totalEvaluation +=
-      totalEvaluation * 0.05 *
+      totalEvaluation *
+      0.05 *
       (20 -
         Ai_Chess.distanceBetweenKings() +
         Ai_Chess.centerManhattanDistance(winning));
@@ -144,22 +144,22 @@ function evaluateBoard(board, debug = false, depth = null) {
   } else {
     for (let i = 0; i < 8; i++) {
       for (let j = 0; j < 8; j++) {
-        totalEvaluation += qEval(i, j);
+        // totalEvaluation += qEval(i, j);
+        totalEvaluation += qEval2(i, j);
       }
     }
-    let whiteMoves;
-    let blackMoves;
+    // let whiteMoves;
+    // let blackMoves;
     if (game.turn() === "w") {
-      whiteMoves = game.moves().length;
+      const whiteMoves = game.moves().length;
       if (whiteMoves === 0) return -Infinity; //u have been checkmated
-      blackMoves = getOpponentMoves(game).length;
+      // blackMoves = getOpponentMoves(game).length;
     } else {
-      blackMoves = game.moves().length;
+      const blackMoves = game.moves().length;
       if (blackMoves === 0) return Infinity;
-      whiteMoves = getOpponentMoves(game).length;
+      // whiteMoves = getOpponentMoves(game).length;
     }
-    //redundant because in negamax, if there's no move it returns -infinity anyway so it never reaches eval usually
-    totalEvaluation += whiteMoves - blackMoves;
+    // totalEvaluation += whiteMoves - blackMoves;
   }
   if (debug) {
     print(
@@ -177,6 +177,38 @@ function evaluateBoard(board, debug = false, depth = null) {
 
 function qEval(i, j, abs = false) {
   return getPieceValue(game.board()[i][j], i, j, abs);
+}
+
+function qEval2(i, j) {
+  const piece = game.board()[i][j];
+  if (piece !== null) {
+    const color = piece.color === "w" ? 1 : -1;
+    return color * getPieceSquare(piece.type, color === 1, i, j);
+  } else {
+    return 0;
+  }
+}
+
+function getPieceSquare(piece, isWhite, x, y) {
+  if (piece === "p") {
+    //PAWN
+    return 100 + (isWhite ? pEvalWhite[x][y] : pEvalBlack[x][y]);
+  } else if (piece === "r") {
+    //ROOK/CHARIOT
+    return 500 + (isWhite ? rEvalWhite[x][y] : rEvalBlack[x][y]);
+  } else if (piece === "b") {
+    //BISHOP
+    return 350 + (isWhite ? bEvalWhite[x][y] : bEvalBlack[x][y]);
+  } else if (piece === "n") {
+    //KNIGHT
+    return 300 + (isWhite ? nEvalWhite[x][y] : nEvalBlack[x][y]);
+  } else if (piece === "q") {
+    //QUEEN
+    return 900 + (isWhite ? qEvalWhite[x][y] : qEvalBlack[x][y]);
+  } else if (piece === "k") {
+    return 99999 + (isWhite ? kEvalWhite_end[x][y] : kEvalBlack_end[x][y]);
+  }
+  throw "Unknown piece type: " + piece;
 }
 
 function stupidEval(piece) {
@@ -214,8 +246,6 @@ function rankingEval(piece) {
 }
 
 function getPieceValue(piece, x, y, abs = false) {
-  var a = String.fromCharCode(97 + y);
-  var b = 9 - x;
   if (piece === null) {
     return 0;
   }
