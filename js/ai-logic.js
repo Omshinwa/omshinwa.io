@@ -7,50 +7,6 @@ var positionCount2 = 0;
 var positionCount3 = 0;
 var previousQuiesMoves = [];
 
-//please delete these after debugging
-function bite() {
-  return game.moves({ verbose: true });
-} //return quickly all moves
-function ascii() {
-  print(game.ascii());
-}
-function currentHash() {
-  return ai.currentHash;
-}
-function hashBoard() {
-  return ai.zobrist.hashBoard();
-}
-function reload() {
-  board.position(game.fen());
-  ai.currentHash = ai.zobrist.hashBoard();
-}
-
-function d2b(dec) {
-  return (dec >>> 0).toString(2);
-}
-
-function print(e, type) {
-  let css,
-    size = 0;
-  switch (type) {
-    case 1:
-      css = "background-color:#fee;";
-      size = "5";
-      break;
-    case 2:
-      css = "background-color:#fcc; font-weight:bold";
-      break;
-    case 3:
-      css = "background-color:#faa; font-weight:bold";
-
-      break;
-    default:
-      css = "background-color:#fff";
-  }
-  // console.trace();
-  console.log("%c" + e, css);
-}
-
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -159,10 +115,10 @@ class Ai_Chess {
     this.currentHash = this.xorHashfromMove(move);
     const isValid = game.fast_move(move);
 
-    if (ai.currentHash != ai.zobrist.hashBoard() || isValid === false) {
-      console.log("desync");
-      debugger;
-    }
+    // if (ai.currentHash != ai.zobrist.hashBoard() || isValid === false) {
+    //   console.log("desync");
+    //   debugger;
+    // }
     //ADD CASTLING RIGHTS ETC
   }
 
@@ -271,40 +227,40 @@ class Ai_Chess {
     );
   }
 
-  static kingMoves(i) {
-    if (i === 0) {
-      return game.moves({ verbose: true }).filter((obj) => obj.piece === "k")
-        .length;
-    }
-    let moveCount = 0;
-    let moves = game
-      .moves({ verbose: true })
-      .filter((obj) => obj.piece === "k");
-    for (let move of moves) {
-      game.fast_move(move);
-      game.fast_move("--");
-      moveCount += Ai_Chess.kingMoves(i - 1);
-      game.fast_move("--");
-      game.undo();
-    }
-    return moveCount;
-  }
+  // static kingMoves(i) {
+  //   if (i === 0) {
+  //     return game.moves({ verbose: true }).filter((obj) => obj.piece === "k")
+  //       .length;
+  //   }
+  //   let moveCount = 0;
+  //   let moves = game
+  //     .moves({ verbose: true })
+  //     .filter((obj) => obj.piece === "k");
+  //   for (let move of moves) {
+  //     game.fast_move(move);
+  //     game.fast_move("--");
+  //     moveCount += Ai_Chess.kingMoves(i - 1);
+  //     game.fast_move("--");
+  //     game.undo();
+  //   }
+  //   return moveCount;
+  // }
 
-  static evalKingMoves(i = 0) {
-    let whiteMoves = 0;
-    let blackMoves = 0;
-    if (game.turn() === "w") {
-      whiteMoves = Ai_Chess.kingMoves(i);
-      game.fast_move("--");
-      blackMoves = Ai_Chess.kingMoves(i);
-    } else if (game.turn() === "b") {
-      blackMoves = Ai_Chess.kingMoves(i);
-      game.fast_move("--");
-      whiteMoves = Ai_Chess.kingMoves(i);
-    }
-    game.fast_move("--");
-    return whiteMoves - blackMoves;
-  }
+  // static evalKingMoves(i = 0) {
+  //   let whiteMoves = 0;
+  //   let blackMoves = 0;
+  //   if (game.turn() === "w") {
+  //     whiteMoves = Ai_Chess.kingMoves(i);
+  //     game.fast_move("--");
+  //     blackMoves = Ai_Chess.kingMoves(i);
+  //   } else if (game.turn() === "b") {
+  //     blackMoves = Ai_Chess.kingMoves(i);
+  //     game.fast_move("--");
+  //     whiteMoves = Ai_Chess.kingMoves(i);
+  //   }
+  //   game.fast_move("--");
+  //   return whiteMoves - blackMoves;
+  // }
 
   static centerManhattanDistance(totalEvaluation) {
     if (totalEvaluation == 0) return 0;
@@ -330,7 +286,7 @@ class Ai_Chess {
   }
 }
 
-function get_smallest_attacker(x, y, square) {
+function get_smallest_attacker(square) {
   const gameMoves = game
     .moves({ verbose: true })
     .filter((obj) => obj.to === square);
@@ -349,7 +305,7 @@ function get_smallest_attacker(x, y, square) {
 
 function see(x, y, square) {
   let value = 0;
-  let move = get_smallest_attacker(x, y, square);
+  let move = get_smallest_attacker(square);
   if (move) {
     const vCapture = stupidEval(move.captured);
     game.fast_move(move);
@@ -404,7 +360,7 @@ function iterativeDeepening(game, isWhiteturn, time, depth = 0) {
   let bestMove = "";
   let newTime = new Date().getTime();
   if (depth > 0) {
-    for (let i = 1; i < depth + 1; i++) {
+    for (let i = 1; i < parseInt(depth) + 1; i++) {
       print("-----iterativeDeep------------" + i + "----------------", depth);
       bestMove = minimaxRoot(i, game, isWhiteturn, 0);
     }
@@ -422,178 +378,6 @@ function iterativeDeepening(game, isWhiteturn, time, depth = 0) {
     }
   }
   return bestMove;
-}
-
-function evaluateBoard(board, debug = false, depth = null) {
-  positionCount3++;
-  if (game.in_stalemate()) return 0;
-  let totalEvaluation = 0;
-
-  if (ai.gameProgress() > 0.5) {
-    let whiteMoves;
-    let blackMoves;
-    if (game.turn() === "w") {
-      whiteMoves = game.moves().length;
-      if (whiteMoves === 0) return -Infinity; //u have been checkmated
-      blackMoves = getOpponentMoves(game).length;
-    } else {
-      blackMoves = game.moves().length;
-      if (blackMoves === 0) return Infinity;
-      whiteMoves = getOpponentMoves(game).length;
-    }
-    for (let i = 0; i < 8; i++) {
-      for (let j = 0; j < 8; j++) {
-        let square = game.board()[i][j];
-        if (square != null) {
-          if (square.color === "w") {
-            totalEvaluation += stupidEval(square.type)*100;
-          } else {
-            totalEvaluation -= stupidEval(square.type)*100;
-          }
-        }
-      }
-    }
-    let winning = Math.sign(totalEvaluation);
-    totalEvaluation +=
-      totalEvaluation * 0.05 *
-      (20 -
-        Ai_Chess.distanceBetweenKings() +
-        Ai_Chess.centerManhattanDistance(winning));
-    // totalEvaluation = winning * totalEvaluation
-  } else {
-    for (let i = 0; i < 8; i++) {
-      for (let j = 0; j < 8; j++) {
-        totalEvaluation += qEval(i, j);
-      }
-    }
-    let whiteMoves;
-    let blackMoves;
-    if (game.turn() === "w") {
-      whiteMoves = game.moves().length;
-      if (whiteMoves === 0) return -Infinity; //u have been checkmated
-      blackMoves = getOpponentMoves(game).length;
-    } else {
-      blackMoves = game.moves().length;
-      if (blackMoves === 0) return Infinity;
-      whiteMoves = getOpponentMoves(game).length;
-    }
-    //redundant because in negamax, if there's no move it returns -infinity anyway so it never reaches eval usually
-    totalEvaluation += whiteMoves - blackMoves;
-  }
-  if (debug) {
-    print(
-      "score:" +
-        totalEvaluation +
-        "\n" +
-        "moveAdvantage:" +
-        (myMoves.length - oppMoves.length) +
-        "\n" +
-        game.ascii()
-    );
-  }
-  return totalEvaluation;
-}
-
-function qEval(i, j, abs = false) {
-  return getPieceValue(game.board()[i][j], i, j, abs);
-}
-
-function stupidEval(piece) {
-  switch (piece) {
-    case "p":
-      return 1;
-    case "n":
-      return 3;
-    case "b":
-      return 3;
-    case "r":
-      return 5;
-    case "q":
-      return 9;
-    case "k":
-      return 99;
-  }
-}
-
-function getPieceValue(piece, x, y, abs = false) {
-  var a = String.fromCharCode(97 + y);
-  var b = 9 - x;
-  if (piece === null) {
-    return 0;
-  }
-  var getAbsoluteValue = function (piece, isWhite, x, y) {
-    if (piece.type === "p") {
-      //PAWN
-      return 100 + (isWhite ? pEvalWhite[x][y] : pEvalBlack[x][y]);
-    } else if (piece.type === "r") {
-      //ROOK/CHARIOT
-      return 500 + (isWhite ? rEvalWhite[x][y] : rEvalBlack[x][y]);
-    } else if (piece.type === "b") {
-      //BISHOP
-      return 350 + (isWhite ? bEvalWhite[x][y] : bEvalBlack[x][y]);
-    } else if (piece.type === "n") {
-      //KNIGHT
-      return 300 + (isWhite ? nEvalWhite[x][y] : nEvalBlack[x][y]);
-    } else if (piece.type === "q") {
-      //QUEEN
-      return 900 + (isWhite ? qEvalWhite[x][y] : qEvalBlack[x][y]);
-    } else if (piece.type === "k") {
-      //KING
-      if (ai.gameProgress() <= 0.5) {
-        return (
-          99999 + (isWhite ? kEvalWhite_middle[x][y] : kEvalBlack_middle[x][y])
-        );
-      } else {
-        return 99999 + (isWhite ? kEvalWhite_end[x][y] : kEvalBlack_end[x][y]);
-      }
-    }
-    throw "Unknown piece type: " + piece.type;
-  };
-
-  let absoluteValue = getAbsoluteValue(piece, piece.color === "w", x, y);
-  if (abs) {
-    return absoluteValue;
-  } else {
-    return piece.color === "w" ? absoluteValue : -absoluteValue;
-  }
-}
-
-function ascii2() {
-  //use ingame to show the value of each pieces
-
-  let s = "   +------------------------------------------------+\n";
-  for (let i = 0; i <= maxX; i++) {
-    /// depen
-    for (let j = -1; j <= maxY; j++) {
-      /* display the rank */
-      if (j === -1) {
-        s += " " + "87654321"[i] + " |";
-        j++;
-      }
-
-      /* empty piece */
-      if (game.board()[i][j] == null) {
-        s += " .... ";
-      } else {
-        let value = qEval(i, j);
-        let color = game.board()[i][j].color;
-        //let symbol = color === 'r' ? piece.toUpperCase() : piece.toLowerCase();
-        if (Math.abs(value) > 9999) {
-          value = "XXXX";
-        } else if (value > 0) {
-          value = "+" + value;
-        }
-        s += " " + value + " ";
-      }
-    }
-    s += "|\n";
-  }
-
-  s += "   +------------------------------------------------+\n";
-  s += "       a     b     c     d     e     f     g     h    \n";
-  s += "score= " + evaluateBoard(game.board());
-
-  print(s);
 }
 
 function quickSort(array, propertyArr) {

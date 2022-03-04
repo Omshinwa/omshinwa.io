@@ -4,8 +4,10 @@
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
 <script src="js/chess.js"></script>
 <script src="js/chessboard-1.0.0.js"></script> 
+<script src="js/io.js"></script>
 <script src="js/ai-logic.js"></script>
-<script src="js/ai-alphabeta.js"></script>
+<script src="js/evaluation.js"></script>
+<script src="js/search.js"></script>
 
 <style type="text/css">
 input[type='checkbox'] {
@@ -36,13 +38,13 @@ Alpha beta
 <div class="info">
     Ply depth:
     <select id="search-depth">
-        <option value="0" selected>0</option>
-        <option value="1" >1</option>
-        <option value="2" >2</option>
-        <option value="3">3</option>
-        <option value="4">4</option>
-        <option value="5">5</option>
-        <option value="8">8</option>
+        <option value=0 selected>0</option>
+        <option value=1>1</option>
+        <option value=2>2</option>
+        <option value=3>3</option>
+        <option value=4>4</option>
+        <option value=5>5</option>
+        <option value=8>8</option>
     </select>
 
     <br>
