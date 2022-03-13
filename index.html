@@ -1,13 +1,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <link rel="stylesheet" type="text/css" href="css/chessboard-1.0.0.css">
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+<!-- <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script> -->
 <script src="js/chess.js"></script>
+<script src="js/jquery-3.3.1.js"></script>
 <script src="js/chessboard-1.0.0.js"></script> 
 <script src="js/io.js"></script>
 <script src="js/ai-logic.js"></script>
 <script src="js/evaluation.js"></script>
 <script src="js/search.js"></script>
+<script src="js/benchmark.js"></script>
 
 <style type="text/css">
 input[type='checkbox'] {
@@ -26,13 +28,13 @@ input[type='checkbox']:checked {
     
     <body>
 <h3 class="board">
-Alpha beta
+hash: <span id="hash"></span>
 </h3>
 <div id="myBoard" class="board" style="width:600px"></div>
 <br>
 <button onclick="ai.undo(); board.position(game.fen()),ai.undo(); board.position(game.fen())">UNDO</button>
 
-<button onclick=" window.setTimeout(makeRandomMove, 250); ">(cpu make 1 move)</button>
+<button onclick=" window.setTimeout(makeAimove, 250); ">(cpu make 1 move)</button>
 <button onclick=" autoPlay(); ">(cpu vs cpu)</button>
 <input type="checkbox" id="no_computer" size="40px">
 <div class="info">
@@ -58,6 +60,7 @@ Alpha beta
     <br>
     <span>Positions/s: <span id="positions-per-s"></span> </span>
     <br>
+    <span>Ordering: <span id="ordering"></span> </span>
     <br>
     <div id="move-history" class="move-history">
     </div>

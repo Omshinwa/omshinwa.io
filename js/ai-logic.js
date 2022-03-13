@@ -6,6 +6,7 @@ var positionCount = 0;
 var positionCount2 = 0;
 var positionCount3 = 0;
 var previousQuiesMoves = [];
+let searchController = {}
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -13,17 +14,13 @@ function sleep(ms) {
 
 async function autoPlay() {
   while (game.game_over() == false) {
-    makeRandomMove();
+    makeAimove();
     await sleep(300);
   }
   alert("Game over");
 }
 
-function makeRandomMove() {
-  if (game.game_over()) {
-    alert("Game over");
-    return;
-  }
+function makeAimove() {
 
   var move = getBestMove(game);
 
@@ -195,7 +192,9 @@ class Ai_Chess {
           Zobrist.piece(move.piece, move.color) * 64 + (j2 + i2 * 8)
         ];
       hash ^=
-        this.zobrist.hash[Zobrist.piece(move.promotion, move.color) * 64 + (j2 + i2 * 8)];
+        this.zobrist.hash[
+          Zobrist.piece(move.promotion, move.color) * 64 + (j2 + i2 * 8)
+        ];
     } else if (move.flags === "cp") {
       hash ^=
         this.zobrist.hash[
@@ -207,82 +206,12 @@ class Ai_Chess {
           Zobrist.piece(move.piece, move.color) * 64 + (j2 + i2 * 8)
         ];
       hash ^=
-        this.zobrist.hash[Zobrist.piece(move.promotion, move.color) * 64 + (j2 + i2 * 8)];
+        this.zobrist.hash[
+          Zobrist.piece(move.promotion, move.color) * 64 + (j2 + i2 * 8)
+        ];
     }
 
     return hash;
-  }
-
-  // @staticmethod
-  static distanceBetweenKings() {
-    let where = [];
-    for (let i = 0; i < game.board().length; i++) {
-      for (let j = 0; j < game.board()[i].length; j++) {
-        if (game.board()[i][j] != null && game.board()[i][j].type === "k")
-          where.push([i, j]);
-      }
-    }
-    return (
-      Math.abs(where[0][0] - where[1][0]) + Math.abs(where[0][1] - where[1][1])
-    );
-  }
-
-  // static kingMoves(i) {
-  //   if (i === 0) {
-  //     return game.moves({ verbose: true }).filter((obj) => obj.piece === "k")
-  //       .length;
-  //   }
-  //   let moveCount = 0;
-  //   let moves = game
-  //     .moves({ verbose: true })
-  //     .filter((obj) => obj.piece === "k");
-  //   for (let move of moves) {
-  //     game.fast_move(move);
-  //     game.fast_move("--");
-  //     moveCount += Ai_Chess.kingMoves(i - 1);
-  //     game.fast_move("--");
-  //     game.undo();
-  //   }
-  //   return moveCount;
-  // }
-
-  // static evalKingMoves(i = 0) {
-  //   let whiteMoves = 0;
-  //   let blackMoves = 0;
-  //   if (game.turn() === "w") {
-  //     whiteMoves = Ai_Chess.kingMoves(i);
-  //     game.fast_move("--");
-  //     blackMoves = Ai_Chess.kingMoves(i);
-  //   } else if (game.turn() === "b") {
-  //     blackMoves = Ai_Chess.kingMoves(i);
-  //     game.fast_move("--");
-  //     whiteMoves = Ai_Chess.kingMoves(i);
-  //   }
-  //   game.fast_move("--");
-  //   return whiteMoves - blackMoves;
-  // }
-
-  static centerManhattanDistance(totalEvaluation) {
-    if (totalEvaluation == 0) return 0;
-    let color = "w";
-    let score = 0;
-    if (totalEvaluation > 0) {
-      color = "b";
-    }
-
-    for (let i = 0; i < 8; i++) {
-      for (let j = 0; j < 8; j++) {
-        if (
-          game.board()[i][j] != null &&
-          game.board()[i][j].type === "k" &&
-          game.board()[i][j].color === color
-        ) {
-          score = arrCenterManhattanDistance[i][j];
-          break;
-        }
-      }
-    }
-    return score;
   }
 }
 
@@ -326,22 +255,24 @@ function seeCapture(move) {
 }
 
 function isWhiteturn() {
-  if (game.turn() == "w") {
+  if (game.turn() === "w") {
     return 1;
   }
   return -1;
 }
 
 function getBestMove(game) {
+  searchController.fhf = 0
+  searchController.fh = 0
   positionCount3 = 0;
   positionCount2 = 0;
   positionCount = 0;
-  ai.PVmoves = [];
+  // ai.PVmoves = [];
 
   let depth = document.getElementById("search-depth").value;
 
   let startTime = new Date().getTime();
-  let bestMove = iterativeDeepening(game, isWhiteturn(), startTime, depth);
+  let bestMove = iterativeDeepening( depth, isWhiteturn(), startTime );
   let d2 = new Date().getTime();
   let moveTime = d2 - startTime;
   let positionsPerS = (positionCount * 1000) / moveTime;
@@ -351,31 +282,36 @@ function getBestMove(game) {
   $("#position-count3").text(positionCount3);
   $("#time").text(moveTime / 1000 + "s");
   $("#positions-per-s").text(positionsPerS);
-  return bestMove.move;
+  $("#ordering").text((searchController.fhf/searchController.fh * 100).toFixed(2) + "%");
+  return bestMove;
 }
 
-function iterativeDeepening(game, isWhiteturn, time, depth = 0) {
+function iterativeDeepening(depth, isWhiteturn, time) {
   let bestMove = "";
   let newTime = new Date().getTime();
   if (depth > 0) {
     for (let i = 1; i < parseInt(depth) + 1; i++) {
-      print("-----iterativeDeep------------" + i + "----------------", depth);
-      bestMove = minimaxRoot(i, game, isWhiteturn, 0);
+      if (i >= 7) break;
+      print("-----iterativeDeep------------" + i + "----------------", i);
+      searchController.maxDepth = i;
+      alphaBeta(i, isWhiteturn, 0);
+      bestMove = ai.lookupTable(ai.currentHash);
     }
   } else {
     let i = 1;
     let searchedMove = "";
-    while (newTime - time < 5000 && depth<13) {
-      print("-----iterativeDeep------------" + i + "----------------", depth);
-      searchedMove = minimaxRoot(i, game, isWhiteturn, i<2? 0:time);
+    while (newTime - time < 5000 && i <= 16) {
+      print("-----iterativeDeep------------" + i + "----------------", i);
+      searchController.maxDepth = i;
+      searchedMove = alphaBeta(i, isWhiteturn, i < 2 ? 0 : time);
       if (searchedMove) {
-        bestMove = searchedMove;
+        bestMove = ai.lookupTable(ai.currentHash);
       }
       i++;
       newTime = new Date().getTime();
     }
   }
-  return bestMove;
+  return bestMove.bestMove;
 }
 
 function quickSort(array, propertyArr) {
@@ -441,10 +377,12 @@ class Zobrist {
   constructor() {
     this.hash = Array(12 * 64 + 4 + 8 + 1); //piece type, square, castling rights, en passant LOL, is it black's turn?
     // for (let i = 0; i < this.hash.length; i++) {
-    //   this.hash[i] = Math.random() * 4294967296; //max number allowed in an array
+    //   this.hash[i] = Math.random() * 2147483647; //max number allowed in an array
     // }
     for (let i = 0; i < this.hash.length; i++) {
-      this.hash[i] = (i / this.hash.length) * (4294967296 + 2147483648); //max number allowed in an array
+      this.hash[i] = ( (i / this.hash.length)*2 - 1) * 2147483648
+
+     // the range of js number we can do XOR operations on: -2147483648 2147483647
     }
   }
 

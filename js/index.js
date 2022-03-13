@@ -11,6 +11,7 @@ var blackSquareGrey = "#a9a969";
 var squareToHighlight = null;
 var squareClass = "square-55d63";
 var colorToHighlight = "";
+document.getElementById("hash").innerHTML = ai.currentHash
 
 function removeGreySquares() {
   $("#myBoard .square-55d63").css("background", "");
@@ -49,37 +50,44 @@ function onDragStart(source, piece) {
 /* untested, seems to save history so you can continue using .undo() */
 let getOpponentMoves = () => {
   // return []
-  game.null_move()
-  let moves = game.moves({legal:false, null_move:true});
-  game.null_move()
+  game.null_move();
+  let moves = game.moves({ legal: false, null_move: true });
+  game.null_move();
   return moves;
 };
 
 function onDrop(source, target) {
   // see if the move is legal
   let move = game.move({
-  from: source,
-  to: target,
-  promotion: 'q' // NOTE: always promote to a queen for example simplicity
-  	});
+    from: source,
+    to: target,
+    promotion: "q", // NOTE: always promote to a queen for example simplicity
+  });
 
   // illegal move
   if (move === null) return "snapback";
 
-  ai.currentHash = ai.xorHashfromMove(move)
+  ai.currentHash = ai.xorHashfromMove(move);
 
-  let color = '';
-  color = move.color === "w" ? 'white':'black'
+  let color = "";
+  color = move.color === "w" ? "white" : "black";
   removeHighlights(color);
   removeGreySquares();
-  
+
   $board.find(".square-" + source).addClass("highlight-" + color);
   $board.find(".square-" + target).addClass("highlight-" + color);
 
-  // make random move for black
-  if ( document.getElementById("no_computer").checked == false)
-  window.setTimeout(makeRandomMove, 250);
+  if (game.game_over()) {
+    window.setTimeout(function () {
+      alert("Game over");
+    }, 250);
+  } else {
+    // make  move for black
+    if (document.getElementById("no_computer").checked == false)
+      window.setTimeout(makeAimove, 250);
+  }
 
+  document.getElementById("hash").innerHTML = ai.currentHash
 }
 
 function onMouseoverSquare(square, piece) {

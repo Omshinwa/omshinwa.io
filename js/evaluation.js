@@ -67,7 +67,7 @@ var qEvalWhite = [
 
 var qEvalBlack = reverseArray(qEvalWhite);
 
-var kEvalWhite_middle = [
+var kEvalWhite = [
   [-30, -40, -40, -50, -50, -40, -40, -30],
   [-30, -40, -40, -50, -50, -40, -40, -30],
   [-30, -40, -40, -50, -50, -40, -40, -30],
@@ -78,18 +78,18 @@ var kEvalWhite_middle = [
   [20, 30, 10, 0, 0, 10, 30, 20],
 ];
 
-var kEvalBlack_middle = reverseArray(kEvalWhite_middle);
+var kEvalBlack = reverseArray(kEvalWhite);
 
-var kEvalWhite_end = [
-  [-30, -20, -10, 30, 30, -10, -20, -30],
-  [-20, -10, 30, 10, 10, 30, -10, -20],
-  [-10, 30, 10, 20, 20, 10, 30, -10],
-  [30, 10, 20, 30, 30, 20, 10, 30],
-  [30, 10, 20, 30, 30, 20, 10, 30],
-  [-10, 30, 10, 20, 20, 10, 30, -10],
-  [-20, -10, 30, 10, 10, 30, -10, -20],
-  [-30, -20, -10, 30, 30, -10, -20, -30],
-];
+// var kEval_end = [
+//   [-30, -20, -10, 30, 30, -10, -20, -30],
+//   [-20, -10, 30, 10, 10, 30, -10, -20],
+//   [-10, 30, 10, 20, 20, 10, 30, -10],
+//   [30, 10, 20, 30, 30, 20, 10, 30],
+//   [30, 10, 20, 30, 30, 20, 10, 30],
+//   [-10, 30, 10, 20, 20, 10, 30, -10],
+//   [-20, -10, 30, 10, 10, 30, -10, -20],
+//   [-30, -20, -10, 30, 30, -10, -20, -30],
+// ];
 
 var arrCenterManhattanDistance = [
   [6, 5, 4, 3, 3, 4, 5, 6],
@@ -102,65 +102,91 @@ var arrCenterManhattanDistance = [
   [6, 5, 4, 3, 3, 4, 5, 6],
 ];
 
-var kEvalBlack_end = reverseArray(kEvalWhite_end);
+// @staticmethod
+function distanceBetweenKings() {
+  let where = [];
+  for (let i = 0; i < game.board().length; i++) {
+    for (let j = 0; j < game.board()[i].length; j++) {
+      if (game.board()[i][j] != null && game.board()[i][j].type === "k")
+        where.push([i, j]);
+    }
+  }
+  return (
+    Math.abs(where[0][0] - where[1][0]) + Math.abs(where[0][1] - where[1][1])
+  );
+}
+
+function centerManhattanDistance(totalEvaluation) {
+  if (totalEvaluation == 0) return 0;
+  let color = "w";
+  let score = 0;
+  if (totalEvaluation > 0) {
+    color = "b";
+  }
+
+  for (let i = 0; i < 8; i++) {
+    for (let j = 0; j < 8; j++) {
+      if (
+        game.board()[i][j] != null &&
+        game.board()[i][j].type === "k" &&
+        game.board()[i][j].color === color
+      ) {
+        score = arrCenterManhattanDistance[i][j];
+        break;
+      }
+    }
+  }
+  return score;
+}
 
 function evaluateBoard(board, debug = false, depth = null) {
+  //todo
+  //should return 3 values that the evaluateBoard decides to add or not
+  //absolute total material (used for game progress), only material, and only squaretable bonus
+  //maybe change the function into a relative score
+
   positionCount3++;
   if (game.in_stalemate()) return 0;
   let totalEvaluation = 0;
+  let absoluteMaterial = 0;
+  let materialOnly = 0;
+  let middleGame = 0;
+  let endGame = 0;
 
-  if (ai.gameProgress() > 0.5) {
-    let whiteMoves;
-    let blackMoves;
-    if (game.turn() === "w") {
-      whiteMoves = game.moves().length;
-      if (whiteMoves === 0) return -Infinity; //u have been checkmated
-      blackMoves = getOpponentMoves(game).length;
-    } else {
-      blackMoves = game.moves().length;
-      if (blackMoves === 0) return Infinity;
-      whiteMoves = getOpponentMoves(game).length;
-    }
-    for (let i = 0; i < 8; i++) {
-      for (let j = 0; j < 8; j++) {
-        let square = game.board()[i][j];
-        if (square != null) {
-          if (square.color === "w") {
-            totalEvaluation += stupidEval(square.type) * 100;
-          } else {
-            totalEvaluation -= stupidEval(square.type) * 100;
-          }
-        }
-      }
-    }
-    let winning = Math.sign(totalEvaluation);
-    totalEvaluation +=
-      totalEvaluation *
-      0.05 *
-      (20 -
-        Ai_Chess.distanceBetweenKings() +
-        Ai_Chess.centerManhattanDistance(winning));
-    // totalEvaluation = winning * totalEvaluation
+  if (game.turn() === "w") {
+    const whiteMoves = game.moves().length;
+    if (whiteMoves === 0) return -Infinity;
   } else {
-    for (let i = 0; i < 8; i++) {
-      for (let j = 0; j < 8; j++) {
-        // totalEvaluation += qEval(i, j);
-        totalEvaluation += qEval2(i, j);
+    const blackMoves = game.moves().length;
+    if (blackMoves === 0) return Infinity;
+  }
+
+  for (let i = 0; i < 8; i++) {
+    for (let j = 0; j < 8; j++) {
+      // totalEvaluation += qEval(i, j);
+      const piece = game.board()[i][j];
+      if (piece !== null) {
+        const color = piece.color === "w" ? 1 : -1;
+        middleGame +=
+          color * getPieceSquare_middle(piece.type, color === 1, i, j);
+        absoluteMaterial += stupidEval(piece.type);
+        materialOnly += color * stupidEval(piece.type) * 100;
+
       }
     }
-    // let whiteMoves;
-    // let blackMoves;
-    if (game.turn() === "w") {
-      const whiteMoves = game.moves().length;
-      if (whiteMoves === 0) return -Infinity; //u have been checkmated
-      // blackMoves = getOpponentMoves(game).length;
-    } else {
-      const blackMoves = game.moves().length;
-      if (blackMoves === 0) return Infinity;
-      // whiteMoves = getOpponentMoves(game).length;
-    }
-    // totalEvaluation += whiteMoves - blackMoves;
   }
+
+  endGame +=
+    Math.sign(materialOnly) *
+    10 *
+    (20 - distanceBetweenKings() + centerManhattanDistance(materialOnly));
+
+  const gameProgress = Math.max(1 - (absoluteMaterial - 198) / 78, 0);
+  // starts at 1, ends at 0
+
+  totalEvaluation =
+    materialOnly + (1 - gameProgress) * middleGame + gameProgress * endGame;
+
   if (debug) {
     print(
       "score:" +
@@ -183,32 +209,40 @@ function qEval2(i, j) {
   const piece = game.board()[i][j];
   if (piece !== null) {
     const color = piece.color === "w" ? 1 : -1;
-    return color * getPieceSquare(piece.type, color === 1, i, j);
+    return color * getPieceSquare_middle(piece.type, color === 1, i, j);
   } else {
     return 0;
   }
 }
 
-function getPieceSquare(piece, isWhite, x, y) {
+function getPieceSquare_middle(piece, isWhite, x, y) {
   if (piece === "p") {
     //PAWN
-    return 100 + (isWhite ? pEvalWhite[x][y] : pEvalBlack[x][y]);
+    return isWhite ? pEvalWhite[x][y] : pEvalBlack[x][y];
   } else if (piece === "r") {
     //ROOK/CHARIOT
-    return 500 + (isWhite ? rEvalWhite[x][y] : rEvalBlack[x][y]);
+    return isWhite ? rEvalWhite[x][y] : rEvalBlack[x][y];
   } else if (piece === "b") {
     //BISHOP
-    return 350 + (isWhite ? bEvalWhite[x][y] : bEvalBlack[x][y]);
+    return isWhite ? bEvalWhite[x][y] : bEvalBlack[x][y];
   } else if (piece === "n") {
     //KNIGHT
-    return 300 + (isWhite ? nEvalWhite[x][y] : nEvalBlack[x][y]);
+    return isWhite ? nEvalWhite[x][y] : nEvalBlack[x][y];
   } else if (piece === "q") {
     //QUEEN
-    return 900 + (isWhite ? qEvalWhite[x][y] : qEvalBlack[x][y]);
+    return isWhite ? qEvalWhite[x][y] : qEvalBlack[x][y];
   } else if (piece === "k") {
-    return 99999 + (isWhite ? kEvalWhite_end[x][y] : kEvalBlack_end[x][y]);
+    return isWhite ? kEvalWhite[x][y] : kEvalBlack[x][y];
   }
   throw "Unknown piece type: " + piece;
+}
+
+function getPieceSquare_end(piece, isWhite, x, y) {
+  if (piece === "k") {
+    return kEval_end[x][y];
+  } else {
+    return 0;
+  }
 }
 
 function stupidEval(piece) {
@@ -242,46 +276,5 @@ function rankingEval(piece) {
       return 5;
     case "k":
       return 6;
-  }
-}
-
-function getPieceValue(piece, x, y, abs = false) {
-  if (piece === null) {
-    return 0;
-  }
-  var getAbsoluteValue = function (piece, isWhite, x, y) {
-    if (piece.type === "p") {
-      //PAWN
-      return 100 + (isWhite ? pEvalWhite[x][y] : pEvalBlack[x][y]);
-    } else if (piece.type === "r") {
-      //ROOK/CHARIOT
-      return 500 + (isWhite ? rEvalWhite[x][y] : rEvalBlack[x][y]);
-    } else if (piece.type === "b") {
-      //BISHOP
-      return 350 + (isWhite ? bEvalWhite[x][y] : bEvalBlack[x][y]);
-    } else if (piece.type === "n") {
-      //KNIGHT
-      return 300 + (isWhite ? nEvalWhite[x][y] : nEvalBlack[x][y]);
-    } else if (piece.type === "q") {
-      //QUEEN
-      return 900 + (isWhite ? qEvalWhite[x][y] : qEvalBlack[x][y]);
-    } else if (piece.type === "k") {
-      //KING
-      if (ai.gameProgress() <= 0.5) {
-        return (
-          99999 + (isWhite ? kEvalWhite_middle[x][y] : kEvalBlack_middle[x][y])
-        );
-      } else {
-        return 99999 + (isWhite ? kEvalWhite_end[x][y] : kEvalBlack_end[x][y]);
-      }
-    }
-    throw "Unknown piece type: " + piece.type;
-  };
-
-  let absoluteValue = getAbsoluteValue(piece, piece.color === "w", x, y);
-  if (abs) {
-    return absoluteValue;
-  } else {
-    return piece.color === "w" ? absoluteValue : -absoluteValue;
   }
 }

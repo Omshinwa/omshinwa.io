@@ -1,0 +1,7 @@
+var TimesToBeExecuted = 1000000;
+var TaskToBeExecuted = function(){
+    // A task that you want to measure
+};
+
+var TestResult = new StandardBenchmark(TaskToBeExecuted,TimesToBeExecuted);
+console.log(TestResult);
