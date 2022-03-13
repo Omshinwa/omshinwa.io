@@ -2,7 +2,7 @@ current issue:
 
 when we check we do depth++, maybe it has issues here, shouldn't the value be the same so it should skip?
 
-game.load('r1b1kb1N/pppp2pp/2n2p2/2q1p3/8/1BP5/PPP2PPP/R1BQK2R b KQq - 2 9'); reload(); 
+game.load('r1bn1k1N/pppp2pp/3b4/4qp1Q/4p3/1BP3P1/PPP2P1P/R1B1R1K1 b - - 3 15'); reload(); 
 
 hash: 1005055304
 
