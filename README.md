@@ -5,7 +5,7 @@ check https://omshinwa.github.io/super-chess/
 
 implemented:
 
-alpha beta, quiescence search (with stactic exchange evaluation), transposition tables (i think it works well? lol), iterative deepening.
+alpha beta, quiescence search (with stactic exchange evaluation), transposition tables (i think it works well? lol), iterative deepening, zobrist hashing.
 
 gotta add: killer and history euristics.
 
