@@ -291,7 +291,6 @@ function iterativeDeepening(depth, isWhiteturn, time) {
   let newTime = new Date().getTime();
   if (depth > 0) {
     for (let i = 1; i < parseInt(depth) + 1; i++) {
-      if (i >= 7) break;
       print("-----iterativeDeep------------" + i + "----------------", i);
       searchController.maxDepth = i;
       alphaBeta(i, isWhiteturn, 0);
