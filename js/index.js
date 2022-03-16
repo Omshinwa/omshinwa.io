@@ -2,7 +2,6 @@ var board = null;
 var $board = $("#myBoard");
 var game = new Chess();
 var ai = new Ai_Chess(
-  game,
   parseInt($("#search-depth").find(":selected").text())
 );
 // var zobrist = new Zobrist()

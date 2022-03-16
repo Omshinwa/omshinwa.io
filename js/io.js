@@ -11,9 +11,11 @@ function bite() {
   function hashBoard() {
     return ai.zobrist.hashBoard();
   }
-  function reload() {
+  function reload(fen=null) {
+    if (fen != null) game.load(fen)
     board.position(game.fen());
     ai.currentHash = ai.zobrist.hashBoard();
+    document.getElementById("hash").innerHTML = ai.currentHash
   }
   
   function d2b(dec) {

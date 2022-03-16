@@ -72,7 +72,7 @@ class TT_node {
 }
 
 class Ai_Chess {
-  constructor(game, depth) {
+  constructor(depth) {
     this.transpositionTable = new Array(524287).fill(null); // {  {fen: FEN,score, depth}, }
     this.PVmoves = new Array(depth).fill(null); // PVmoves are the best moves
     this.lastTurnBestMove = []; // max 10
@@ -82,14 +82,19 @@ class Ai_Chess {
   }
 
   storeTranspositionTable(ttEntry) {
+
+    if (ttEntry.score > 90000) { ttEntry.score = 99999}
+    else if (ttEntry.score < -90000) { ttEntry.score = -99999}
     let oldHash = this.transpositionTable[(ttEntry.key + 2147483648) % 524287];
 
     if (oldHash === null) {
       this.transpositionTable[(ttEntry.key + 2147483648) % 524287] = ttEntry;
-    } else if (ttEntry.depth > oldHash.depth || oldHash.key != ttEntry.key) {
+    }
+    else if (ttEntry.depth > oldHash.depth || oldHash.key != ttEntry.key) {
       // if( oldHash.score != Infinity && oldHash.score != -Infinity ){ // otherwise he keeps rewriting short checkmates with longer ones
       console.log("replaced " + oldHash.key);
       if (oldHash.key != ttEntry.key) console.log(" with " + ttEntry.key);
+      else console.log("updated " + oldHash.key);
       this.transpositionTable[(ttEntry.key + 2147483648) % 524287] = ttEntry;
       // }
     }

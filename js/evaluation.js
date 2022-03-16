@@ -155,10 +155,10 @@ function evaluateBoard(board, debug = false, depth = null) {
 
   if (game.turn() === "w") {
     const whiteMoves = game.moves().length;
-    if (whiteMoves === 0) return -Infinity;
+    if (whiteMoves === 0) return -99999 - depth + searchController.maxDepth; // -Infinity // 
   } else {
     const blackMoves = game.moves().length;
-    if (blackMoves === 0) return Infinity;
+    if (blackMoves === 0) return +99999 + depth - searchController.maxDepth; // Infinity; //  
   }
 
   for (let i = 0; i < 8; i++) {
